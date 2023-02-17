@@ -1,4 +1,6 @@
-from manim_imports_ext import *
+
+from asyncio import log
+import itertools
 from tqdm import tqdm as ProgressDisplay
 from scipy.stats import entropy
 import numpy as np
@@ -13,7 +15,7 @@ EXACT = np.uint8(2) # Correct letter, correct position
 
 DATA_DIR = os.path.join(
     os.path.dirname(os.path.realpath(__file__)),
-    "data",
+    "../data",
 )
 SHORT_WORD_LIST_FILE = os.path.join(DATA_DIR, "possible_words.txt")
 LONG_WORD_LIST_FILE = os.path.join(DATA_DIR, "allowed_words.txt")
@@ -132,7 +134,7 @@ def generate_pattern_matrix(words1, words2):
     # of letters in words. Specifically, equality_grid[a, b, i, j]
     # is true when words[i][a] == words[b][j]
     equality_grid = np.zeros((nw1, nw2, nl, nl), dtype=bool)
-    for i, j in it.product(range(nl), range(nl)):
+    for i, j in itertools.product(range(nl), range(nl)):
         equality_grid[:, :, i, j] = np.equal.outer(word_arr1[:, i], word_arr2[:, j])
 
     # full_pattern_matrix[a, b] should represent the 5-color pattern
@@ -152,7 +154,7 @@ def generate_pattern_matrix(words1, words2):
             equality_grid[:, :, i, k].flat[matches] = False
 
     # Yellow pass
-    for i, j in it.product(range(nl), range(nl)):
+    for i, j in itertools.product(range(nl), range(nl)):
         matches = equality_grid[:, :, i, j].flatten()
         full_pattern_matrix[:, :, i].flat[matches] = MISPLACED
         for k in range(nl):
