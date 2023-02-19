@@ -1,15 +1,17 @@
-from manim_imports_ext import *
-from tqdm import tqdm as ProgressDisplay
-from scipy.stats import entropy
 import numpy as np
 import os
+import itertools as it
 import json
+import logging as log
 import math
+from tqdm import tqdm as ProgressDisplay
+from scipy.stats import entropy
+from scipy.special import expit as sigmoid
 import random
 
-MISS = np.uint8(0)  # Missed
-MISPLACED = np.uint8(1) # Correct letter, wrong position
-EXACT = np.uint8(2) # Correct letter, correct position
+MISS = np.uint8(0)
+MISPLACED = np.uint8(1)
+EXACT = np.uint8(2)
 
 DATA_DIR = os.path.join(
     os.path.dirname(os.path.realpath(__file__)),
@@ -560,7 +562,7 @@ def get_two_step_score_lower_bound(first_guess, allowed_words, possible_words):
 
 def find_top_scorers(n_top_candidates=100, quiet=True, file_ext="", **kwargs):
     # Run find_best_two_step_entropy first
-    file = os.path.join(get_directories()["data"], "wordle", "best_double_entropies.json")
+    file = os.path.join(DATA_DIR, "best_double_entropies.json")
     with open(file) as fp:
         double_ents = json.load(fp)
 
@@ -585,10 +587,7 @@ def find_top_scorers(n_top_candidates=100, quiet=True, file_ext="", **kwargs):
     top_scorers = sorted(list(guess_to_score.keys()), key=lambda w: guess_to_score[w])
     result = [[w, guess_to_score[w], guess_to_dist[w]] for w in top_scorers]
 
-    file = os.path.join(
-        get_directories()["data"], "wordle",
-        "best_scores" + file_ext + ".json",
-    )
+    file = os.path.join(DATA_DIR, "best_scores" + file_ext + ".json")
     with open(file, 'w') as fp:
         json.dump(result, fp)
 
@@ -605,7 +604,7 @@ def find_best_two_step_entropy():
     top_candidates = np.array(words)[sorted_indices[:-250:-1]]
     top_ents = ents[sorted_indices[:-250:-1]]
 
-    ent_file = os.path.join(get_directories()["data"], "wordle", "best_entropies.json")
+    ent_file = os.path.join(DATA_DIR, "best_entropies.json")
     with open(ent_file, 'w') as fp:
         json.dump([[tc, te] for tc, te in zip(top_candidates, top_ents)], fp)
 
@@ -621,7 +620,7 @@ def find_best_two_step_entropy():
         for i in sorted_indices2[::-1]
     ]
 
-    ent2_file = os.path.join(get_directories()["data"], "wordle", "best_double_entropies.json")
+    ent2_file = os.path.join(DATA_DIR, "best_double_entropies.json")
     with open(ent2_file, 'w') as fp:
         json.dump(double_ents, fp)
 
@@ -759,6 +758,12 @@ def simulate_games(first_guess=None,
     all_words = get_word_list(short=False)
     short_word_list = get_word_list(short=True)
 
+    # TODO
+    choice_config = {
+        "look_two_ahead": False,
+        "optimize_for_uniform_distribution": False,
+        "purely_maximize_information": False,
+    }
     if first_guess is None:
         first_guess = optimal_guess(
             all_words, all_words, priors,
